@@ -1,0 +1,16 @@
+# Build artifacts
+music_visualizer
+vis
+*.exe
+1
+
+# Development documentation
+dev/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
