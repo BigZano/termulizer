@@ -19,6 +19,7 @@ type model struct {
 	metadata       AudioMetadata
 	history        []AudioMessage
 	maxHistory     int
+	colorScheme    string
 }
 
 type (
@@ -36,6 +37,7 @@ func initialModel(audioChan <-chan AudioMessage) model {
 		metadata:       DefaultMetadata(),
 		maxHistory:     30, // Reduced for 30 FPS
 		history:        make([]AudioMessage, 0, 30),
+		colorScheme:    "original",
 	}
 }
 
@@ -68,6 +70,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "q", "ctrl+c", "esc":
 			return m, tea.Quit
+		case " ": // spacebar
+			// Toggle between color schemes
+			if m.colorScheme == "original" {
+				m.colorScheme = "retro"
+			} else {
+				m.colorScheme = "original"
+			}
+			m.strandRenderer.SetColorScheme(m.colorScheme)
 		}
 
 	case tea.WindowSizeMsg:
@@ -115,10 +125,16 @@ func (m model) View() string {
 	output.WriteString(waves)
 
 	// Footer
+
+	schemeLabel := "Original"
+	if m.colorScheme == "retro" {
+		schemeLabel = "Retro"
+	}
+
 	footer := lipgloss.NewStyle().
 		Faint(true).
 		Foreground(lipgloss.Color("#888888")).
-		Render("\nPress 'q' to quit | 30 FPS")
+		Render("\nPress 'q' to quit | SPACE to change colors | 30 FPS | " + schemeLabel)
 	output.WriteString(footer)
 
 	return output.String()

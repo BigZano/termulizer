@@ -128,6 +128,11 @@ func selectCaptureDevice() (*portaudio.DeviceInfo, error) {
 
 		name := strings.ToLower(device.Name)
 
+		// Skip JACK devices that cause crashes
+		if strings.Contains(name, "jack") {
+			continue
+		}
+
 		// Linux: PulseAudio monitor, PipeWire virtual sink
 		// macOS: BlackHole driver
 		// Windows: Stereo Mix, loopback
@@ -152,6 +157,10 @@ func selectCaptureDevice() (*portaudio.DeviceInfo, error) {
 }
 
 func startPortAudio(sampleRate int, framesPerBuf int, inChannels int) (chan []float32, func() error, error) {
+	// Force ALSA to avoid JACK backend issues on Linux
+	os.Setenv("PA_ALSA_PLUGHW", "1")
+	os.Setenv("SDL_AUDIODRIVER", "alsa")
+
 	if err := portaudio.Initialize(); err != nil {
 		return nil, nil, err
 	}

@@ -15,25 +15,45 @@ type StrandRenderer struct {
 	chaosSmooth float64    // Smoothed chaos level
 }
 
-func NewStrandRenderer(noiseGen *NoiseGenerator) *StrandRenderer {
-	// Original color gradient (dark red → bright pink)
-	colors := [9]lipgloss.Color{
-		lipgloss.Color("#5A0000"), // Dark red
-		lipgloss.Color("#E10600"), // Red
-		lipgloss.Color("#FF7A00"), // Orange
-		lipgloss.Color("#FFD400"), // Yellow
-		lipgloss.Color("#3DFF4E"), // Green
-		lipgloss.Color("#00E5FF"), // Cyan
-		lipgloss.Color("#2F5BFF"), // Blue
-		lipgloss.Color("#6A00FF"), // Purple
-		lipgloss.Color("#FF00C8"), // Magenta
-	}
+var defaultColors = [9]lipgloss.Color{
+	lipgloss.Color("#5A0000"), // Dark red
+	lipgloss.Color("#E10600"), // Red
+	lipgloss.Color("#FF7A00"), // Orange
+	lipgloss.Color("#FFD400"), // Yellow
+	lipgloss.Color("#3DFF4E"), // Green
+	lipgloss.Color("#00E5FF"), // Cyan
+	lipgloss.Color("#2F5BFF"), // Blue
+	lipgloss.Color("#6A00FF"), // Purple
+	lipgloss.Color("#FF00C8"), // Magenta
+}
 
+var retroColors = [9]lipgloss.Color{
+	lipgloss.Color("#FF0080"),
+	lipgloss.Color("#FF0099"),
+	lipgloss.Color("#FF00CC"),
+	lipgloss.Color("#FF00FF"),
+	lipgloss.Color("#CC00FF"),
+	lipgloss.Color("#9900FF"),
+	lipgloss.Color("#6600FF"),
+	lipgloss.Color("#3300FF"),
+	lipgloss.Color("#FF00CC"),
+}
+
+func NewStrandRenderer(noiseGen *NoiseGenerator) *StrandRenderer {
 	return &StrandRenderer{
-		colors:      colors,
+		colors:      defaultColors,
 		noiseGen:    noiseGen,
 		smoothing:   [9]float64{},
 		chaosSmooth: 0.0,
+	}
+}
+
+func (sr *StrandRenderer) SetColorScheme(scheme string) {
+	switch scheme {
+	case "retro":
+		sr.colors = retroColors
+	default:
+		sr.colors = defaultColors
 	}
 }
 
@@ -67,7 +87,7 @@ func (sr *StrandRenderer) RenderVerticalWaves(bands [9]float64, chaosLevel float
 	}
 
 	// Render each strand
-	for strandIdx := 0; strandIdx < numStrands; strandIdx++ {
+	for strandIdx := range numStrands {
 		baseX := padding + (strandIdx+1)*strandSpacing
 		energy := sr.smoothing[strandIdx]
 		color := sr.colors[strandIdx]
@@ -92,7 +112,9 @@ func (sr *StrandRenderer) renderStrand(
 	strandIdx int,
 ) {
 	// Wave parameters
-	amplitude := energy * 8.0                              // How far from center the wave moves (in characters)
+	// Add baseline amplitude so waves move even with no audio
+	baselineAmp := 2.0
+	amplitude := baselineAmp + (energy * 6.0)              // How far from center the wave moves (in characters)
 	frequency := 2.0 + (energy * 3.0)                      // How many complete cycles
 	phase := sr.noiseGen.time * (1.0 + sr.chaosSmooth*2.0) // Animation speed based on chaos
 
@@ -101,7 +123,7 @@ func (sr *StrandRenderer) renderStrand(
 	persistence := 0.4 + (sr.chaosSmooth * 0.3)
 
 	// Draw the wave from top to bottom
-	for y := 0; y < height; y++ {
+	for y := range height {
 		// Normalize y to 0-1 then to phase angle
 		yNorm := float64(y) / float64(height)
 		angle := yNorm * math.Pi * 2.0 * frequency
