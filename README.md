@@ -139,9 +139,7 @@ Inline mode disables alternate screen buffer for better compatibility with custo
 - **[PortAudio](http://www.portaudio.com/)** - Cross-platform audio I/O
 - **[GoNum](https://www.gonum.org/)** - FFT and DSP algorithms
 - **[OpenSimplex](https://github.com/ojrac/opensimplex-go)** - FBM noise generation
-
 -- ❤️ and Go
-
 ---
 
 ## Troubleshooting
