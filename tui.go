@@ -13,7 +13,7 @@ type model struct {
 	height       int
 	bands        [9]float64
 	chaosLevel   float64
-	audioChan    <-chan AudioMessage
+	frameChan    <-chan AudioFrame
 	noiseGen     *NoiseGenerator
 	beamRenderer *BeamRenderer
 	metadata     AudioMetadata
@@ -23,16 +23,16 @@ type model struct {
 
 type (
 	tickMsg  time.Time
-	audioMsg AudioMessage
+	audioMsg AudioFrame
 )
 
-func initialModel(audioChan <-chan AudioMessage) model {
+func initialModel(frameChan <-chan AudioFrame) model {
 	noiseGen := NewNoiseGenerator(time.Now().UnixNano())
 
 	LogInfo("Creating initial TUI model")
 
 	return model{
-		audioChan:    audioChan,
+		frameChan:    frameChan,
 		noiseGen:     noiseGen,
 		beamRenderer: NewBeamRenderer(noiseGen),
 		metadata:     DefaultMetadata(),
@@ -45,7 +45,7 @@ func (m model) Init() tea.Cmd {
 	LogInfo("TUI Init() called")
 	return tea.Batch(
 		tickCmd(),
-		waitForAudio(m.audioChan),
+		waitForAudio(m.frameChan),
 	)
 }
 
@@ -55,7 +55,7 @@ func tickCmd() tea.Cmd {
 	})
 }
 
-func waitForAudio(ch <-chan AudioMessage) tea.Cmd {
+func waitForAudio(ch <-chan AudioFrame) tea.Cmd {
 	return func() tea.Msg {
 		msg, ok := <-ch
 		if !ok {
@@ -101,7 +101,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.chaosLevel = msg.ChaosLevel
 		m.metadata = msg.Metadata
 
-		return m, waitForAudio(m.audioChan)
+		return m, waitForAudio(m.frameChan)
 
 	case tea.QuitMsg:
 		LogInfo("Received tea.QuitMsg")

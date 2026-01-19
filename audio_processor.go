@@ -11,18 +11,14 @@ import (
 )
 
 type AudioProcessor struct {
-	stream          *portaudio.Stream
-	buffer          []float32
-	analysisBuffer  []float32
-	sampleRate      int
-	bufferSize      int
-	noiseGen        *NoiseGenerator
-	bands           [9]float64
-	smoothedBands   [9]float64
-	smoothingFactor float64
-	chaosLevel      float64
-	fft             *fourier.FFT
-	mediaProvider   *MediaSessionProvider
+	stream         *portaudio.Stream
+	buffer         []float32
+	analysisBuffer []float32
+	sampleRate     int
+	bufferSize     int
+	noiseGen       *NoiseGenerator
+	fft            *fourier.FFT
+	mediaProvider  *MediaSessionProvider
 }
 
 func NewAudioProcessor(sampleRate, bufferSize int) (*AudioProcessor, error) {
@@ -43,7 +39,7 @@ func NewAudioProcessor(sampleRate, bufferSize int) (*AudioProcessor, error) {
 }
 
 // Builds buffer to perform FFT and calculates band "energy"
-func (ap *AudioProcessor) ProcessBuffer(buffer []float32) AudioMessage {
+func (ap *AudioProcessor) ProcessBuffer(buffer []float32) AudioFrame {
 	defer func() {
 		if r := recover(); r != nil {
 			LogPanic(r, "ProcessBuffer internal")
@@ -53,7 +49,7 @@ func (ap *AudioProcessor) ProcessBuffer(buffer []float32) AudioMessage {
 	// Validate input
 	if len(buffer) == 0 {
 		LogError("ProcessBuffer received empty buffer")
-		return AudioMessage{
+		return AudioFrame{
 			Bands:      [9]float64{},
 			ChaosLevel: 0,
 			Timestamp:  time.Now(),
@@ -109,7 +105,7 @@ func (ap *AudioProcessor) ProcessBuffer(buffer []float32) AudioMessage {
 
 	if len(leftFFT.coeffs) == 0 || len(rightFFT.coeffs) == 0 {
 		LogError("FFT returned empty coefficients")
-		return AudioMessage{
+		return AudioFrame{
 			Bands:      [9]float64{},
 			ChaosLevel: 0,
 			Timestamp:  time.Now(),
@@ -129,12 +125,12 @@ func (ap *AudioProcessor) ProcessBuffer(buffer []float32) AudioMessage {
 	var bandEnergies [9]float64
 	var totalEnergy float64
 
-	// Use package-level `bands` (defined in main.go) for frequency ranges.
+	// Use package-level `frequencyBands` (defined in main.go) for frequency ranges.
 	for i := range bandEnergies {
-		if i >= len(bands) {
+		if i >= len(frequencyBands) {
 			break
 		}
-		fb := bands[i]
+		fb := frequencyBands[i]
 		minBin := int(fb.MinFreq / binWidth)
 		maxBin := int(fb.MaxFreq / binWidth)
 
@@ -244,7 +240,7 @@ func (ap *AudioProcessor) ProcessBuffer(buffer []float32) AudioMessage {
 		metadata = DefaultMetadata()
 	}
 
-	return AudioMessage{
+	return AudioFrame{
 		Bands:      bandEnergies,
 		ChaosLevel: chaosLevel,
 		Timestamp:  time.Now(),

@@ -34,20 +34,20 @@ var beamRetroColors = [9]lipgloss.Color{
 
 // BeamRenderer creates horizontal plasma-like beams for each frequency band
 type BeamRenderer struct {
-	colors      [9]lipgloss.Color
-	noiseGen    *NoiseGenerator
-	smoothing   [9]float64 // Smoothed energy values
-	chaosSmooth float64
-	cache       *PerformanceCache
+	colors           [9]lipgloss.Color
+	noiseGen         *NoiseGenerator
+	smoothedEnergies [9]float64 // Smoothed energy values
+	chaosSmooth      float64
+	cache            *RenderCache
 }
 
 func NewBeamRenderer(noiseGen *NoiseGenerator) *BeamRenderer {
 	return &BeamRenderer{
-		colors:      beamDefaultColors,
-		noiseGen:    noiseGen,
-		smoothing:   [9]float64{},
-		chaosSmooth: 0.0,
-		cache:       NewPerformanceCache(),
+		colors:           beamDefaultColors,
+		noiseGen:         noiseGen,
+		smoothedEnergies: [9]float64{},
+		chaosSmooth:      0.0,
+		cache:            NewRenderCache(),
 	}
 }
 
@@ -65,7 +65,7 @@ func (br *BeamRenderer) RenderPlasmaBeams(bands [9]float64, chaosLevel float64, 
 	// Smoother transitions for "liquid" feel
 	smoothFactor := 0.35 // 35% new, 65% old = smoother, more viscous
 	for i := range bands {
-		br.smoothing[i] = br.smoothing[i]*(1-smoothFactor) + bands[i]*smoothFactor
+		br.smoothedEnergies[i] = br.smoothedEnergies[i]*(1-smoothFactor) + bands[i]*smoothFactor
 	}
 	br.chaosSmooth = br.chaosSmooth*(1-smoothFactor) + chaosLevel*smoothFactor
 
@@ -92,7 +92,7 @@ func (br *BeamRenderer) RenderPlasmaBeams(bands [9]float64, chaosLevel float64, 
 		go func(idx int) {
 			defer wg.Done()
 			baseX := padding + (idx+1)*beamSpacing
-			energy := br.smoothing[idx]
+			energy := br.smoothedEnergies[idx]
 			color := br.colors[idx]
 
 			br.renderVerticalBeamParallel(colorGrid, intensityGrid, baseX, renderHeight, width, energy, color, idx, &gridMu)

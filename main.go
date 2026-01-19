@@ -21,7 +21,7 @@ import (
 	"github.com/mdlayher/waveform"
 )
 
-func mustGetWd() string {
+func getWorkingDir() string {
 	wd, err := os.Getwd()
 	if err != nil {
 		return "<unknown>"
@@ -109,7 +109,7 @@ func detectAudioSetup() error {
 
 // Include metadata from OS media session
 // (populated on platforms that support it)
-type AudioMessage struct {
+type AudioFrame struct {
 	Bands      [9]float64
 	ChaosLevel float64
 	Timestamp  time.Time
@@ -124,7 +124,7 @@ type FrequencyBand struct {
 	Color   lipgloss.Color
 }
 
-var bands = []FrequencyBand{
+var frequencyBands = []FrequencyBand{
 	{Name: "Sub-Bass", MinFreq: 20, MaxFreq: 60},       // Deep low-end rumble
 	{Name: "Bass", MinFreq: 60, MaxFreq: 250},          // Kick drum, bass guitar fundamentals
 	{Name: "Low Mids", MinFreq: 250, MaxFreq: 500},     // Lower warmth, snare body
@@ -465,7 +465,7 @@ func runVisualizer() {
 
 	LogInfo("Audio processor created successfully")
 
-	tuiChan := make(chan AudioMessage, 10)
+	frameChan := make(chan AudioFrame, 10)
 	quitAudio := make(chan struct{})
 	var wg sync.WaitGroup
 
@@ -479,7 +479,7 @@ func runVisualizer() {
 				LogPanic(r, "audio goroutine")
 			}
 			LogInfo("Audio goroutine shutting down")
-			close(tuiChan)
+			close(frameChan)
 		}()
 
 		LogDebug("Audio goroutine running")
@@ -499,7 +499,7 @@ func runVisualizer() {
 					}()
 					msg := processor.ProcessBuffer(buffer)
 					select {
-					case tuiChan <- msg:
+					case frameChan <- msg:
 					case <-quitAudio:
 						return
 					}
@@ -521,12 +521,12 @@ func runVisualizer() {
 	}
 
 	// Detect terminal capabilities and get appropriate options
-	terminOptions := detectTerminalCapabilities()
+	terminalOptions := detectTerminalCapabilities()
 
 	// Create Bubbletea program with detected options
 	p := tea.NewProgram(
-		initialModel(tuiChan),
-		terminOptions...,
+		initialModel(frameChan),
+		terminalOptions...,
 	)
 
 	if p == nil {
@@ -610,7 +610,7 @@ func runVisualizer() {
 
 	LogInfo("Draining audio channel")
 	drainCount := 0
-	for range tuiChan {
+	for range frameChan {
 		drainCount++
 	}
 	LogInfo("Drained %d messages from channel", drainCount)

@@ -37,7 +37,7 @@ func (st *SineTable) Sin(angle float64) float64 {
 	return val1 + fraction*(val2-val1)
 }
 
-type PerformanceCache struct {
+type RenderCache struct {
 	sineTable     *SineTable
 	gridPool      sync.Pool
 	colorPool     sync.Pool
@@ -47,8 +47,8 @@ type PerformanceCache struct {
 	builderPool   sync.Pool
 }
 
-func NewPerformanceCache() *PerformanceCache {
-	return &PerformanceCache{
+func NewRenderCache() *RenderCache {
+	return &RenderCache{
 		sineTable:  NewSineTable(),
 		styleCache: make(map[string]lipgloss.Style, 3000),
 		gridPool: sync.Pool{
@@ -74,7 +74,7 @@ func NewPerformanceCache() *PerformanceCache {
 	}
 }
 
-func (pc *PerformanceCache) GetGrids(height, width int) ([][]rune, [][]lipgloss.Color, [][]float64) {
+func (pc *RenderCache) GetGrids(height, width int) ([][]rune, [][]lipgloss.Color, [][]float64) {
 	grid := pc.gridPool.Get().([][]rune)
 	colorGrid := pc.colorPool.Get().([][]lipgloss.Color)
 	intensityGrid := pc.intensityPool.Get().([][]float64)
@@ -100,13 +100,13 @@ func (pc *PerformanceCache) GetGrids(height, width int) ([][]rune, [][]lipgloss.
 	return grid[:height], colorGrid[:height], intensityGrid[:height]
 }
 
-func (pc *PerformanceCache) ReturnGrids(grid [][]rune, colorGrid [][]lipgloss.Color, intensityGrid [][]float64) {
+func (pc *RenderCache) ReturnGrids(grid [][]rune, colorGrid [][]lipgloss.Color, intensityGrid [][]float64) {
 	pc.gridPool.Put(grid)
 	pc.colorPool.Put(colorGrid)
 	pc.intensityPool.Put(intensityGrid)
 }
 
-func (pc *PerformanceCache) GetStyle(fg lipgloss.Color) lipgloss.Style {
+func (pc *RenderCache) GetStyle(fg lipgloss.Color) lipgloss.Style {
 	key := string(fg)
 	pc.styleMu.RLock()
 	style, ok := pc.styleCache[key]
@@ -125,7 +125,7 @@ func (pc *PerformanceCache) GetStyle(fg lipgloss.Color) lipgloss.Style {
 	return style
 }
 
-func (pc *PerformanceCache) GetStyleFGBG(fg, bg lipgloss.Color) lipgloss.Style {
+func (pc *RenderCache) GetStyleFGBG(fg, bg lipgloss.Color) lipgloss.Style {
 	key := string(fg) + "," + string(bg)
 	pc.styleMu.RLock()
 	style, ok := pc.styleCache[key]
@@ -144,18 +144,18 @@ func (pc *PerformanceCache) GetStyleFGBG(fg, bg lipgloss.Color) lipgloss.Style {
 	return style
 }
 
-func (pc *PerformanceCache) GetBuilder() *strings.Builder {
+func (pc *RenderCache) GetBuilder() *strings.Builder {
 	sb := pc.builderPool.Get().(*strings.Builder)
 	sb.Reset()
 	return sb
 }
 
-func (pc *PerformanceCache) ReturnBuilder(sb *strings.Builder) {
+func (pc *RenderCache) ReturnBuilder(sb *strings.Builder) {
 	pc.builderPool.Put(sb)
 }
 
 // ApplyGradient handles both brightness and "Heat Heat" shift towards white for high intensity
-func (pc *PerformanceCache) ApplyGradient(baseColor lipgloss.Color, intensity float64) lipgloss.Color {
+func (pc *RenderCache) ApplyGradient(baseColor lipgloss.Color, intensity float64) lipgloss.Color {
 	r, g, b, ok := parseHex(string(baseColor))
 	if !ok {
 		return baseColor
@@ -182,7 +182,7 @@ func (pc *PerformanceCache) ApplyGradient(baseColor lipgloss.Color, intensity fl
 	return uint8ToHex(uint8(rf), uint8(gf), uint8(bf))
 }
 
-func (pc *PerformanceCache) BlendColors(c1, c2 lipgloss.Color, ratio float64) lipgloss.Color {
+func (pc *RenderCache) BlendColors(c1, c2 lipgloss.Color, ratio float64) lipgloss.Color {
 	r1, g1, b1, ok1 := parseHex(string(c1))
 	r2, g2, b2, ok2 := parseHex(string(c2))
 

@@ -10,10 +10,10 @@ import (
 
 // StrandRenderer handles vertical sine wave visualization
 type StrandRenderer struct {
-	colors      [9]lipgloss.Color
-	noiseGen    *NoiseGenerator
-	smoothing   [9]float64 // Smoothed energy values for less jitter
-	chaosSmooth float64    // Smoothed chaos level
+	colors           [9]lipgloss.Color
+	noiseGen         *NoiseGenerator
+	smoothedEnergies [9]float64 // Smoothed energy values for less jitter
+	chaosSmooth      float64    // Smoothed chaos level
 }
 
 var defaultColors = [9]lipgloss.Color{
@@ -42,10 +42,10 @@ var retroColors = [9]lipgloss.Color{
 
 func NewStrandRenderer(noiseGen *NoiseGenerator) *StrandRenderer {
 	return &StrandRenderer{
-		colors:      defaultColors,
-		noiseGen:    noiseGen,
-		smoothing:   [9]float64{},
-		chaosSmooth: 0.0,
+		colors:           defaultColors,
+		noiseGen:         noiseGen,
+		smoothedEnergies: [9]float64{},
+		chaosSmooth:      0.0,
 	}
 }
 
@@ -64,13 +64,13 @@ func (sr *StrandRenderer) RenderVerticalWaves(bands [9]float64, chaosLevel float
 	smoothFactor := 0.3
 	for i := range bands {
 		// Use actual band energies from audio processing
-		sr.smoothing[i] = sr.smoothing[i]*(1-smoothFactor) + bands[i]*smoothFactor
+		sr.smoothedEnergies[i] = sr.smoothedEnergies[i]*(1-smoothFactor) + bands[i]*smoothFactor
 	}
 	sr.chaosSmooth = sr.chaosSmooth*(1-smoothFactor) + chaosLevel*smoothFactor
 
 	LogDebug("Rendering: bands=[%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f]",
-		sr.smoothing[0], sr.smoothing[1], sr.smoothing[2], sr.smoothing[3],
-		sr.smoothing[4], sr.smoothing[5], sr.smoothing[6], sr.smoothing[7], sr.smoothing[8])
+		sr.smoothedEnergies[0], sr.smoothedEnergies[1], sr.smoothedEnergies[2], sr.smoothedEnergies[3],
+		sr.smoothedEnergies[4], sr.smoothedEnergies[5], sr.smoothedEnergies[6], sr.smoothedEnergies[7], sr.smoothedEnergies[8])
 
 	// Calculate strand spacing (divide width by number of strands + padding)
 	numStrands := 9
@@ -95,7 +95,7 @@ func (sr *StrandRenderer) RenderVerticalWaves(bands [9]float64, chaosLevel float
 	// Render each strand with the same test energy
 	for strandIdx := range numStrands {
 		baseX := padding + (strandIdx+1)*strandSpacing
-		energy := sr.smoothing[strandIdx] // All should be the same now
+		energy := sr.smoothedEnergies[strandIdx] // All should be the same now
 		color := sr.colors[strandIdx]
 
 		// Render this strand's wave
