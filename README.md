@@ -13,7 +13,6 @@ We've focused on making Termulizer as smooth and responsive as possible. Here is
 - Chaos-Driven Distortion: A custom FBM noise generator adds organic, fluid motion to the strands, making them look more like liquid than static waves as the music intensity increases.
 - Performance First: With a custom double-buffering system and a dedicated grid-based rendering engine, we've eliminated flickering and kept CPU usage low.
 - Interactivity: You can switch between different color palettes on the fly to match your terminal's theme or your current mood.
-- Multiplatform: Whether you are on Linux, macOS, or Windows, Termulizer works across all major operating systems.
 
 ---
 
@@ -21,7 +20,7 @@ We've focused on making Termulizer as smooth and responsive as possible. Here is
 
 Check out Termulizer in action:
 
-![Termulizer in action](assets/demo.gif)
+`![Termulizer in action](assets/demo.gif)
 
 ---
 
@@ -34,13 +33,6 @@ Check out Termulizer in action:
 sudo apt-get install portaudio19-dev
 ```
 
-**macOS:**
-```bash
-brew install portaudio
-```
-
-**Windows:**  
-No additional dependencies (PortAudio included)
 
 ### Build
 
@@ -54,27 +46,19 @@ go build -o vis .
 
 You need a loopback device to capture system audio, virtual or physical.
 
-**Linux (PulseAudio):**
-```bash
-pactl load-module module-loopback
-```
-
 **Linux (PipeWire):**
 Usually available by default. Verify with:
 ```bash
 pw-cli list-objects Node | grep monitor
 ```
 
-else you'll likely be using PulseAudio. Same command should confirm if you're using Pulse or PipeWire. 
+else you'll likely be using PulseAudio. It's written with Pipewire in mind, but it's backwards compatible 
 
 **macOS:**
-```bash
-brew install blackhole-2ch
-# Then configure in Audio MIDI Setup
-```
+Support coming :) planned using the Blackhole driver
 
 **Windows:**  
-Enable "Stereo Mix" in Sound Settings -> Recording Devices
+Support coming :) planned to use the WindowsNativeAPI
 
 ### Run
 
@@ -83,12 +67,6 @@ Enable "Stereo Mix" in Sound Settings -> Recording Devices
 ```
 
 Press 'q' to quit.
-
----
-
-## Roadmap
-
-(Roadmap section to be filled by the user)
 
 ---
 

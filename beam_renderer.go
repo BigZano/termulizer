@@ -8,7 +8,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-var defaultColors = [9]lipgloss.Color{
+var beamDefaultColors = [9]lipgloss.Color{
 	lipgloss.Color("#5A0000"), // Dark red
 	lipgloss.Color("#E10600"), // Red
 	lipgloss.Color("#FF7A00"), // Orange
@@ -20,7 +20,7 @@ var defaultColors = [9]lipgloss.Color{
 	lipgloss.Color("#FF00C8"), // Magenta
 }
 
-var retroColors = [9]lipgloss.Color{
+var beamRetroColors = [9]lipgloss.Color{
 	lipgloss.Color("#FF0080"),
 	lipgloss.Color("#FF0099"),
 	lipgloss.Color("#FF00CC"),
@@ -43,7 +43,7 @@ type BeamRenderer struct {
 
 func NewBeamRenderer(noiseGen *NoiseGenerator) *BeamRenderer {
 	return &BeamRenderer{
-		colors:      defaultColors,
+		colors:      beamDefaultColors,
 		noiseGen:    noiseGen,
 		smoothing:   [9]float64{},
 		chaosSmooth: 0.0,
@@ -54,15 +54,15 @@ func NewBeamRenderer(noiseGen *NoiseGenerator) *BeamRenderer {
 func (br *BeamRenderer) SetColorScheme(scheme string) {
 	switch scheme {
 	case "retro":
-		br.colors = retroColors
+		br.colors = beamRetroColors
 	default:
-		br.colors = defaultColors
+		br.colors = beamDefaultColors
 	}
 }
 
-// RenderPlasmaBeams creates vertical plasma beams for each frequency band
+// builds beam for each band
 func (br *BeamRenderer) RenderPlasmaBeams(bands [9]float64, chaosLevel float64, width int, height int) string {
-	// Smoother, more viscous transitions for "liquid" feel
+	// Smoother transitions for "liquid" feel
 	smoothFactor := 0.35 // 35% new, 65% old = smoother, more viscous
 	for i := range bands {
 		br.smoothing[i] = br.smoothing[i]*(1-smoothFactor) + bands[i]*smoothFactor
@@ -103,7 +103,7 @@ func (br *BeamRenderer) RenderPlasmaBeams(bands [9]float64, chaosLevel float64, 
 	return br.gridToStringHalfBlock(colorGrid, intensityGrid, width, height)
 }
 
-// renderVerticalBeamParallel is a thread-safe version of renderVerticalBeam
+// parallel rendering to cut down on cpu load
 func (br *BeamRenderer) renderVerticalBeamParallel(
 	colorGrid [][]lipgloss.Color,
 	intensityGrid [][]float64,
@@ -132,7 +132,6 @@ func (br *BeamRenderer) renderVerticalBeamParallel(
 			0.45,
 		)
 
-		// Horizontal "snaking" amplitude
 		distortionAmp := (2.5 + energy*6.0) * (0.8 + br.chaosSmooth*1.2)
 		xOffset := noiseX * distortionAmp
 
