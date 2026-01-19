@@ -3,6 +3,7 @@ music_visualizer
 vis
 *.exe
 1
+log.log
 
 # Development documentation
 dev/

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"strings"
+	"fmt"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -9,17 +9,16 @@ import (
 )
 
 type model struct {
-	width          int
-	height         int
-	bands          [9]float64
-	chaosLevel     float64
-	audioChan      <-chan AudioMessage
-	noiseGen       *NoiseGenerator
-	strandRenderer *StrandRenderer
-	metadata       AudioMetadata
-	history        []AudioMessage
-	maxHistory     int
-	colorScheme    string
+	width        int
+	height       int
+	bands        [9]float64
+	chaosLevel   float64
+	audioChan    <-chan AudioMessage
+	noiseGen     *NoiseGenerator
+	beamRenderer *BeamRenderer
+	metadata     AudioMetadata
+	colorScheme  string
+	ready        bool
 }
 
 type (
@@ -30,35 +29,38 @@ type (
 func initialModel(audioChan <-chan AudioMessage) model {
 	noiseGen := NewNoiseGenerator(time.Now().UnixNano())
 
+	LogInfo("Creating initial TUI model")
+
 	return model{
-		audioChan:      audioChan,
-		noiseGen:       noiseGen,
-		strandRenderer: NewStrandRenderer(noiseGen),
-		metadata:       DefaultMetadata(),
-		maxHistory:     30, // Reduced for 30 FPS
-		history:        make([]AudioMessage, 0, 30),
-		colorScheme:    "original",
+		audioChan:    audioChan,
+		noiseGen:     noiseGen,
+		beamRenderer: NewBeamRenderer(noiseGen),
+		metadata:     DefaultMetadata(),
+		colorScheme:  "original",
+		ready:        false,
 	}
 }
 
 func (m model) Init() tea.Cmd {
+	LogInfo("TUI Init() called")
 	return tea.Batch(
 		tickCmd(),
-		m.waitForAudio(),
+		waitForAudio(m.audioChan),
 	)
 }
 
 func tickCmd() tea.Cmd {
-	return tea.Tick(time.Second/30, func(t time.Time) tea.Msg {
+	return tea.Tick(time.Second/60, func(t time.Time) tea.Msg {
 		return tickMsg(t)
 	})
 }
 
-func (m model) waitForAudio() tea.Cmd {
+func waitForAudio(ch <-chan AudioMessage) tea.Cmd {
 	return func() tea.Msg {
-		msg, ok := <-m.audioChan
+		msg, ok := <-ch
 		if !ok {
-			return tea.Quit() // Channel closed, exit gracefully
+			LogInfo("Audio channel closed, sending tea.Quit")
+			return tea.Quit
 		}
 		return audioMsg(msg)
 	}
@@ -69,6 +71,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "ctrl+c", "esc":
+			LogInfo("User requested quit via key: %s", msg.String())
 			return m, tea.Quit
 		case " ": // spacebar
 			// Toggle between color schemes
@@ -77,39 +80,41 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				m.colorScheme = "original"
 			}
-			m.strandRenderer.SetColorScheme(m.colorScheme)
+			m.beamRenderer.SetColorScheme(m.colorScheme)
+			LogDebug("Color scheme changed to: %s", m.colorScheme)
 		}
 
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+		m.ready = true
+		LogInfo("Window resized: %dx%d", m.width, m.height)
 
 	case tickMsg:
-		// update noise animation (30 FPS)
-		m.noiseGen.Update(1.0 / 30.0)
+		// update noise animation (60 FPS)
+		m.noiseGen.Update(1.0 / 60.0)
 		return m, tickCmd()
 
 	case audioMsg:
 		// updates with new audio data
 		m.bands = msg.Bands
 		m.chaosLevel = msg.ChaosLevel
-		m.history = append(m.history, AudioMessage(msg))
-		if len(m.history) > m.maxHistory {
-			m.history = m.history[1:]
-		}
+		m.metadata = msg.Metadata
 
-		return m, m.waitForAudio()
+		return m, waitForAudio(m.audioChan)
+
+	case tea.QuitMsg:
+		LogInfo("Received tea.QuitMsg")
+		return m, tea.Quit
 	}
 
 	return m, nil
 }
 
 func (m model) View() string {
-	if m.width == 0 {
-		return "Loading..."
+	if !m.ready || m.width == 0 {
+		return "Initializing visualizer..."
 	}
-
-	var output strings.Builder
 
 	// Calculate section heights
 	metadataHeight := int(float64(m.height) * 0.3)
@@ -117,15 +122,11 @@ func (m model) View() string {
 
 	// Render metadata section (top 30%)
 	metadata := RenderMetadata(m.metadata, m.width, metadataHeight)
-	output.WriteString(metadata)
-	output.WriteString("\n")
 
-	// Render vertical sine wave strands (bottom 70%)
-	waves := m.strandRenderer.RenderVerticalWaves(m.bands, m.chaosLevel, m.width, waveHeight)
-	output.WriteString(waves)
+	// Render horizontal plasma beams (bottom 70%)
+	waves := m.beamRenderer.RenderPlasmaBeams(m.bands, m.chaosLevel, m.width, waveHeight)
 
 	// Footer
-
 	schemeLabel := "Original"
 	if m.colorScheme == "retro" {
 		schemeLabel = "Retro"
@@ -134,8 +135,7 @@ func (m model) View() string {
 	footer := lipgloss.NewStyle().
 		Faint(true).
 		Foreground(lipgloss.Color("#888888")).
-		Render("\nPress 'q' to quit | SPACE to change colors | 30 FPS | " + schemeLabel)
-	output.WriteString(footer)
+		Render("\nPress 'q' to quit | SPACE to change colors | 60 FPS | " + schemeLabel)
 
-	return output.String()
+	return fmt.Sprintf("%s\n%s%s", metadata, waves, footer)
 }

@@ -1,20 +1,27 @@
-# Music Visualizer
+# Termulizer
 
-A cross-platform terminal-based music visualizer inspired by **Windows Media Player (90s era)**. Captures real-time system audio and generates **9 vertical sine wave strands** with chaos-driven FBM distortion.
-
-![Version](https://img.shields.io/badge/version-2.0-blue)
-![Status](https://img.shields.io/badge/status-production--ready-success)
-![Go](https://img.shields.io/badge/go-1.21+-00ADD8?logo=go)
-![Platform](https://img.shields.io/badge/platform-linux%20%7C%20macos%20%7C%20windows-lightgrey)
+Termulizer is a high-performance, real-time music visualizer built for the terminal. Inspired by the classic media players of the 90s, it uses nine vertical sine wave strands that react dynamically to your system audio. It's designed to be lightweight, responsive, and visually engaging, bringing a bit of nostalgic flair to your shell.
 
 ---
 
 ## Features
 
-- **9 Vertical Sine Wave Strands** - One per frequency band (Sub-Bass → Air)
-- **Real-Time Audio Capture** - FFT analysis at 30 FPS
-- **Chaos-Driven Distortion** - FBM noise responds to music intensity
-- **Cross-Platform** - Linux, macOS, and Windows support
+We've focused on making Termulizer as smooth and responsive as possible. Here is what's under the hood:
+
+- Real-Time FFT Analysis: The audio processor captures system sound at 60 FPS, ensuring that every beat and frequency change is reflected instantly in the visualization.
+- Nine Vertical Strands: We've mapped Nine independent strands to specific frequency bands, ranging from deep sub-bass to the highest air frequencies.
+- Chaos-Driven Distortion: A custom FBM noise generator adds organic, fluid motion to the strands, making them look more like liquid than static waves as the music intensity increases.
+- Performance First: With a custom double-buffering system and a dedicated grid-based rendering engine, we've eliminated flickering and kept CPU usage low.
+- Interactivity: You can switch between different color palettes on the fly to match your terminal's theme or your current mood.
+- Multiplatform: Whether you are on Linux, macOS, or Windows, Termulizer works across all major operating systems.
+
+---
+
+## Video Demonstration
+
+Check out Termulizer in action:
+
+[Watch the Demonstration Video](assets/demo.mp4)
 
 ---
 
@@ -67,7 +74,7 @@ brew install blackhole-2ch
 ```
 
 **Windows:**  
-Enable "Stereo Mix" in Sound Settings → Recording Devices
+Enable "Stereo Mix" in Sound Settings -> Recording Devices
 
 ### Run
 
@@ -75,7 +82,13 @@ Enable "Stereo Mix" in Sound Settings → Recording Devices
 ./vis
 ```
 
-Press `q` to quit.
+Press 'q' to quit.
+
+---
+
+## Roadmap
+
+(Roadmap section to be filled by the user)
 
 ---
 
@@ -98,6 +111,27 @@ Each band is targeted to represent a specific frequency range:
 
 ---
 
+## Shell Compatibility
+
+The visualizer works with **all shells** (bash, zsh, fish, starship, and custom prompts).
+
+**If you experience terminal corruption with custom shells:**
+
+```bash
+# Option 1: Set environment variable
+export MUSIC_VIS_MODE=inline
+./music_visualizer
+
+# Option 2: Use the provided script  
+./run_inline.sh
+```
+
+Inline mode disables alternate screen buffer for better compatibility with custom prompts and terminal multiplexers.
+
+**Make it permanent:** Add `export MUSIC_VIS_MODE=inline` to your `.bashrc`, `.zshrc`, or shell config.
+
+---
+
 ## Built With
 
 - **[Bubble Tea](https://github.com/charmbracelet/bubbletea)** - TUI framework
@@ -106,7 +140,6 @@ Each band is targeted to represent a specific frequency range:
 - **[GoNum](https://www.gonum.org/)** - FFT and DSP algorithms
 - **[OpenSimplex](https://github.com/ojrac/opensimplex-go)** - FBM noise generation
 
--- ❤️ and Go
 
 ---
 
@@ -129,15 +162,6 @@ Use a modern terminal with TrueColor support:
 - Linux: Alacritty, Kitty
 - macOS: iTerm2
 - Windows: Windows Terminal
-
----
-
-## Road Map
-
-- [ ] API integration
-- [ ] Configuration system (CLI flags, config file)
-- [ ] Alternative color schemes
-- [ ] Alternative visualization schemes
 
 ---
 

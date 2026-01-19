@@ -55,3 +55,8 @@ func (ng *NoiseGenerator) DistortWave(x, amplitude, chaosLevel float64) float64 
 func (ng *NoiseGenerator) Update(delta float64) {
 	ng.time += delta
 }
+
+// Generate simple 2D noise
+func (ng *NoiseGenerator) Generate(x, y float64) float64 {
+	return ng.noise.Eval2(x, y)
+}
