@@ -8,6 +8,30 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+var defaultColors = [9]lipgloss.Color{
+	lipgloss.Color("#5A0000"), // Dark red
+	lipgloss.Color("#E10600"), // Red
+	lipgloss.Color("#FF7A00"), // Orange
+	lipgloss.Color("#FFD400"), // Yellow
+	lipgloss.Color("#3DFF4E"), // Green
+	lipgloss.Color("#00E5FF"), // Cyan
+	lipgloss.Color("#2F5BFF"), // Blue
+	lipgloss.Color("#6A00FF"), // Purple
+	lipgloss.Color("#FF00C8"), // Magenta
+}
+
+var retroColors = [9]lipgloss.Color{
+	lipgloss.Color("#FF0080"),
+	lipgloss.Color("#FF0099"),
+	lipgloss.Color("#FF00CC"),
+	lipgloss.Color("#FF00FF"),
+	lipgloss.Color("#CC00FF"),
+	lipgloss.Color("#9900FF"),
+	lipgloss.Color("#6600FF"),
+	lipgloss.Color("#3300FF"),
+	lipgloss.Color("#FF00CC"),
+}
+
 // BeamRenderer creates horizontal plasma-like beams for each frequency band
 type BeamRenderer struct {
 	colors      [9]lipgloss.Color
