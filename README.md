@@ -21,7 +21,7 @@ We've focused on making Termulizer as smooth and responsive as possible. Here is
 
 Check out Termulizer in action:
 
-<video src="https://github.com/BigZano/termulizer/raw/master/assets/demo.mp4" autoplay muted loop style="max-width: 100%;"></video>
+<video src="assets/demo.mp4" autoplay muted loop style="max-width: 100%;"></video>
 
 ---
 
