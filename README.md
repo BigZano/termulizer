@@ -1,6 +1,6 @@
 # Termulizer
 
-Termulizer is a high-performance, real-time music visualizer built for the terminal. Inspired by the classic media players of the 90s, it uses nine vertical sine wave strands that react dynamically to your system audio. It's designed to be lightweight, responsive, and visually engaging, bringing a bit of nostalgic flair to your shell.
+Termulizer is a high-performance, real-time music visualizer built for the terminal. I was inspired by Winamp and Media Player, and wanted somthing small and out of the way to be a bit of desktop flair and decoration. 
 
 ---
 
@@ -21,7 +21,7 @@ We've focused on making Termulizer as smooth and responsive as possible. Here is
 
 Check out Termulizer in action:
 
-[Watch the Demonstration Video](assets/demo.mp4)
+<video src="assets/demo.mp4" autoplay muted loop style="max-width: 100%;"></video>
 
 ---
 
@@ -140,6 +140,7 @@ Inline mode disables alternate screen buffer for better compatibility with custo
 - **[GoNum](https://www.gonum.org/)** - FFT and DSP algorithms
 - **[OpenSimplex](https://github.com/ojrac/opensimplex-go)** - FBM noise generation
 
+-- ❤️ and Go
 
 ---
 
@@ -162,6 +163,16 @@ Use a modern terminal with TrueColor support:
 - Linux: Alacritty, Kitty
 - macOS: iTerm2
 - Windows: Windows Terminal
+
+---
+
+## Road Map
+
+- [ ] Lua configuation system
+- [ ] Windows integration
+- [ ] Mac integration
+- [ ] Alternative color schemes
+- [ ] Alternative visualization schemes
 
 ---
 
