@@ -12,8 +12,10 @@ import (
 type StrandRenderer struct {
 	colors           [9]lipgloss.Color
 	noiseGen         *NoiseGenerator
-	smoothedEnergies [9]float64 // Smoothed energy values for less jitter
-	chaosSmooth      float64    // Smoothed chaos level
+	smoothedEnergies [9]float64
+	previousEnergies [9]float64
+	bandPhysics      [9]BandPhysics
+	chaosSmooth      float64
 }
 
 var defaultColors = [9]lipgloss.Color{
@@ -45,7 +47,19 @@ func NewStrandRenderer(noiseGen *NoiseGenerator) *StrandRenderer {
 		colors:           defaultColors,
 		noiseGen:         noiseGen,
 		smoothedEnergies: [9]float64{},
-		chaosSmooth:      0.0,
+		previousEnergies: [9]float64{},
+		bandPhysics: [9]BandPhysics{
+			lowFreqPhysics,
+			lowFreqPhysics,
+			lowFreqPhysics,
+			midFreqPhysics,
+			midFreqPhysics,
+			midFreqPhysics,
+			highFreqPhysics,
+			highFreqPhysics,
+			highFreqPhysics,
+		},
+		chaosSmooth: 0.0,
 	}
 }
 

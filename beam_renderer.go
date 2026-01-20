@@ -32,11 +32,34 @@ var beamRetroColors = [9]lipgloss.Color{
 	lipgloss.Color("#FF00CC"),
 }
 
-// BeamRenderer creates horizontal plasma-like beams for each frequency band
+var (
+	lowFreqPhysics = BandPhysics{
+		Attack: 0.85,
+		Decay:  0.30,
+	}
+
+	midFreqPhysics = BandPhysics{
+		Attack: 0.90,
+		Decay:  0.25,
+	}
+
+	highFreqPhysics = BandPhysics{
+		Attack: 0.95,
+		Decay:  0.40,
+	}
+)
+
+type BandPhysics struct {
+	Attack float64
+	Decay  float64
+}
+
 type BeamRenderer struct {
 	colors           [9]lipgloss.Color
 	noiseGen         *NoiseGenerator
 	smoothedEnergies [9]float64 // Smoothed energy values
+	previousEnergies [9]float64
+	bandPhysics      [9]BandPhysics
 	chaosSmooth      float64
 	cache            *RenderCache
 }
@@ -46,8 +69,20 @@ func NewBeamRenderer(noiseGen *NoiseGenerator) *BeamRenderer {
 		colors:           beamDefaultColors,
 		noiseGen:         noiseGen,
 		smoothedEnergies: [9]float64{},
-		chaosSmooth:      0.0,
-		cache:            NewRenderCache(),
+		previousEnergies: [9]float64{},
+		bandPhysics: [9]BandPhysics{
+			lowFreqPhysics,
+			lowFreqPhysics,
+			lowFreqPhysics,
+			midFreqPhysics,
+			midFreqPhysics,
+			midFreqPhysics,
+			highFreqPhysics,
+			highFreqPhysics,
+			highFreqPhysics,
+		},
+		chaosSmooth: 0.0,
+		cache:       NewRenderCache(),
 	}
 }
 
@@ -60,16 +95,22 @@ func (br *BeamRenderer) SetColorScheme(scheme string) {
 	}
 }
 
-// builds beam for each band
 func (br *BeamRenderer) RenderPlasmaBeams(bands [9]float64, chaosLevel float64, width int, height int) string {
 	// Smoother transitions for "liquid" feel
-	smoothFactor := 0.35 // 35% new, 65% old = smoother, more viscous
 	for i := range bands {
-		br.smoothedEnergies[i] = br.smoothedEnergies[i]*(1-smoothFactor) + bands[i]*smoothFactor
-	}
-	br.chaosSmooth = br.chaosSmooth*(1-smoothFactor) + chaosLevel*smoothFactor
+		newEnergy := bands[i]
+		currentEnergy := br.smoothedEnergies[i]
+		physics := br.bandPhysics[i]
 
-	// DOUBLE height for Half-Block rendering (2 pixels per terminal row)
+		if newEnergy > currentEnergy {
+			br.smoothedEnergies[i] = currentEnergy*(1-physics.Attack) + newEnergy*physics.Attack
+		} else {
+			br.smoothedEnergies[i] = currentEnergy*(1-physics.Decay) + newEnergy*physics.Decay
+		}
+
+		br.previousEnergies[i] = br.smoothedEnergies[i]
+	}
+
 	renderHeight := height * 2
 
 	// Calculate beam spacing - divide width by number of beams
@@ -120,13 +161,11 @@ func (br *BeamRenderer) renderVerticalBeamParallel(
 	coreWidth := 0.8 + (energy * 2.2)
 	time := br.noiseGen.time
 
-	// Vertical flow
 	for y := range height {
 		yNorm := float64(y) / float64(height)
 
-		// Coherent liquid wobble
 		noiseX := br.noiseGen.GenerateFBM(
-			yNorm*1.8,                     // Slightly more frequency for "sinuous" look
+			yNorm*1.8,                     // Slightly more frequency for "snakey" look
 			float64(beamIdx)*0.4+time*0.7, // Movement speed
 			3,
 			0.45,
@@ -159,13 +198,10 @@ func (br *BeamRenderer) renderVerticalBeamParallel(
 			// Distance from beam center
 			dist := math.Abs(float64(dx)) / currentWidth
 
-			// Sharper core and shorter-lived glow
 			var falloff float64
 			if dist < 0.3 {
-				// Focused core: very high intensity, narrow
-				falloff = 1.0 - (dist * 0.8)
+				falloff = 1.0 - (dist / 0.3)
 			} else {
-				// Diffuse aura: drops off very quickly
 				falloff = 0.75 * math.Exp(-4.5*(dist-0.3))
 			}
 
@@ -173,14 +209,11 @@ func (br *BeamRenderer) renderVerticalBeamParallel(
 				continue
 			}
 
-			// Final intensity influenced by energy
 			intensity := energy * falloff
 
-			// Electric flicker
 			flicker := 0.92 + 0.16*math.Sin(time*25.0+float64(y)*0.6)
 			intensity *= flicker
 
-			// Apply gradient coloring (now includes heat shift)
 			gradientColor := br.cache.ApplyGradient(color, intensity)
 
 			mu.Lock()
@@ -215,7 +248,7 @@ func (br *BeamRenderer) gridToStringHalfBlock(
 	sb := br.cache.GetBuilder()
 	defer br.cache.ReturnBuilder(sb)
 
-	// We iterate by 2 in the renderHeight (which is height * 2)
+	// chop blocks in half, layer for half-blocking
 	for y := 0; y < height*2; y += 2 {
 		x := 0
 		for x < width {
@@ -233,7 +266,7 @@ func (br *BeamRenderer) gridToStringHalfBlock(
 			if y+1 < height*2 {
 				bg = colorGrid[y+1][x]
 			} else {
-				bg = lipgloss.Color("") // Default background
+				bg = lipgloss.Color("")
 			}
 
 			x++
@@ -251,13 +284,9 @@ func (br *BeamRenderer) gridToStringHalfBlock(
 				}
 				x++
 			}
-
-			// Render the run as Half-Blocks
-			// Character is Upper Half Block '▀'
-			// Foreground = Top pixel, Background = Bottom pixel
+			// Get style for this FG/BG combination (should account for multiple themes)
 			style := br.cache.GetStyleFGBG(fg, bg)
 
-			// Build the string of half-blocks for this run
 			runLen := x - start
 			runStr := strings.Repeat("▀", runLen)
 			sb.WriteString(style.Render(runStr))
@@ -268,4 +297,27 @@ func (br *BeamRenderer) gridToStringHalfBlock(
 	}
 
 	return sb.String()
+}
+
+func (br *BeamRenderer) SetBandPhysics(bandIndex int, attack, decay float64) {
+	if bandIndex >= 0 && bandIndex < 9 {
+		br.bandPhysics[bandIndex] = BandPhysics{
+			Attack: attack,
+			Decay:  decay,
+		}
+		LogInfo("Band %d physics: attack=%.2f, decay=%.2f", bandIndex, attack, decay)
+	}
+}
+
+func (br *BeamRenderer) SetPhysicsProfile(profile string) {
+	switch profile {
+	case "fast":
+		for i := range 9 {
+			br.bandPhysics[i] = BandPhysics{Attack: 0.95, Decay: 0.50}
+		}
+	case "slow":
+		for i := range 9 {
+			br.bandPhysics[i] = BandPhysics{Attack: 0.75, Decay: 0.10}
+		}
+	}
 }

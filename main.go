@@ -43,16 +43,6 @@ func detectTerminalCapabilities() []tea.ProgramOption {
 	// User can opt-in to alt-screen mode via MUSIC_VIS_MODE=altscreen if their terminal supports it
 	hasAltScreen := false
 
-	// Allow user to override and enable alt-screen mode explicitly
-	if forceMode := os.Getenv("MUSIC_VIS_MODE"); forceMode != "" {
-		LogInfo("User override via MUSIC_VIS_MODE=%s", forceMode)
-		if forceMode == "altscreen" || forceMode == "alt-screen" {
-			LogInfo("User enabled alt-screen mode")
-			fmt.Fprintln(os.Stderr, "[INFO] Running in alt-screen mode (user override)")
-			hasAltScreen = true
-		}
-	}
-
 	// Build options list
 	opts := []tea.ProgramOption{
 		tea.WithMouseCellMotion(),
@@ -69,7 +59,6 @@ func detectTerminalCapabilities() []tea.ProgramOption {
 	return opts
 }
 
-// isTerminalInteractive checks if we're running in an interactive terminal
 func isTerminalInteractive() bool {
 	// Check if stdin is a terminal
 	fileInfo, err := os.Stdin.Stat()
@@ -89,11 +78,11 @@ func detectAudioSetup() error {
 	hasLoopback := false
 	for _, device := range devices {
 		name := strings.ToLower(device.Name)
-		// Linux: monitor, Mac: BlackHole, Windows: Stereo Mix / loopback audio devices
-		if strings.Contains(name, "monitor") ||
-			strings.Contains(name, "blackhole") ||
-			strings.Contains(name, "stereo mix") ||
-			strings.Contains(name, "loopback") {
+
+		if strings.Contains(name, "monitor") || // Linux
+			strings.Contains(name, "blackhole") || // macOS
+			strings.Contains(name, "stereo mix") || // Windows
+			strings.Contains(name, "loopback") { // Windows
 			hasLoopback = true
 			break
 		}
@@ -150,7 +139,6 @@ func generateWaveform(inputPath, outputPath string) error {
 	}
 	defer f.Close()
 
-	// OptionsFunc, not Option; Scale takes two uints.
 	opts := []waveform.OptionsFunc{
 		waveform.Resolution(1024),
 		waveform.Scale(2, 2), // x, y are uint
@@ -162,18 +150,17 @@ func generateWaveform(inputPath, outputPath string) error {
 		),
 	}
 
-	// Create waveform
+	// Create waveform and compute values
 	wf, err := waveform.New(f, opts...)
 	if err != nil {
 		return fmt.Errorf("failed to create waveform: %w", err)
 	}
 
-	// Compute values and draw image
 	vals, err := wf.Compute()
 	if err != nil {
 		return fmt.Errorf("failed to compute waveform: %w", err)
 	}
-	img := wf.Draw(vals) // img is image.Image[web:28]
+	img := wf.Draw(vals)
 
 	out, err := os.Create(outputPath)
 	if err != nil {
